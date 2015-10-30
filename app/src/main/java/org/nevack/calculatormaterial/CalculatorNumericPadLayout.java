@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2014 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.nevack.calculatormaterial;
 
 import android.content.Context;
@@ -21,9 +5,7 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.widget.Button;
 import android.view.View;
-import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
 import java.util.Locale;
 
 public class CalculatorNumericPadLayout extends CalculatorPadLayout {
@@ -44,17 +26,7 @@ public class CalculatorNumericPadLayout extends CalculatorPadLayout {
     public void onFinishInflate() {
         super.onFinishInflate();
 
-        Locale locale = getResources().getConfiguration().locale;
-        if (!getResources().getBoolean(R.bool.use_localized_digits)) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                locale = new Locale.Builder()
-                    .setLocale(locale)
-                    .setUnicodeLocaleKeyword("nu", "latn")
-                    .build();
-            }
-        }
-
-        final DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(locale);
+        final DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(getResources().getConfiguration().locale);
         final char zeroDigit = symbols.getZeroDigit();
         for (int childIndex = getChildCount() - 1; childIndex >= 0; --childIndex) {
             final View v = getChildAt(childIndex);

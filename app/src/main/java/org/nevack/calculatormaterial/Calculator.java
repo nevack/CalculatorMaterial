@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2014 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.nevack.calculatormaterial;
 
 import android.animation.Animator;
@@ -29,6 +13,7 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -37,6 +22,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.View.OnLongClickListener;
+import android.view.ViewAnimationUtils;
 import android.view.ViewGroupOverlay;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Button;
@@ -180,7 +166,7 @@ public class Calculator extends Activity
             }
 
             if (state == CalculatorState.ERROR) {
-                final int errorColor = getResources().getColor(R.color.calculator_error_color);
+                final int errorColor = ContextCompat.getColor(this, R.color.calculator_error_color);
                 mFormulaEditText.setTextColor(errorColor);
                 mResultEditText.setTextColor(errorColor);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -188,12 +174,12 @@ public class Calculator extends Activity
                 }
             } else {
                 mFormulaEditText.setTextColor(
-                        getResources().getColor(R.color.display_formula_text_color));
+                        ContextCompat.getColor(this, R.color.display_formula_text_color));
                 mResultEditText.setTextColor(
-                        getResources().getColor(R.color.display_result_text_color));
+                        ContextCompat.getColor(this, R.color.display_result_text_color));
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     getWindow().setStatusBarColor(
-                            getResources().getColor(R.color.calculator_accent_color));
+                            ContextCompat.getColor(this, R.color.calculator_accent_color));
                 }
             }
         }
@@ -326,7 +312,7 @@ public class Calculator extends Activity
         revealView.setBottom(displayRect.bottom);
         revealView.setLeft(displayRect.left);
         revealView.setRight(displayRect.right);
-        revealView.setBackgroundColor(getResources().getColor(colorRes));
+        revealView.setBackgroundColor(ContextCompat.getColor(this, colorRes));
         groupOverlay.add(revealView);
 
         final int[] clearLocation = new int[2];
@@ -334,13 +320,34 @@ public class Calculator extends Activity
         clearLocation[0] += sourceView.getWidth() / 2;
         clearLocation[1] += sourceView.getHeight() / 2;
 
+        Animator revealAnimator = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            final int revealCenterX = clearLocation[0] - revealView.getLeft();
+            final int revealCenterY = clearLocation[1] - revealView.getTop();
+
+            final double x1_2 = Math.pow(revealView.getLeft() - revealCenterX, 2);
+            final double x2_2 = Math.pow(revealView.getRight() - revealCenterX, 2);
+            final double y_2 = Math.pow(revealView.getTop() - revealCenterY, 2);
+            final float revealRadius = (float) Math.max(Math.sqrt(x1_2 + y_2), Math.sqrt(x2_2 + y_2));
+
+            revealAnimator = ViewAnimationUtils.createCircularReveal(revealView,
+                    revealCenterX, revealCenterY, 0.0f, revealRadius);
+
+            revealAnimator.setDuration(
+                    getResources().getInteger(android.R.integer.config_longAnimTime));
+        }
         final Animator alphaAnimator = ObjectAnimator.ofFloat(revealView, View.ALPHA, 0.0f);
         alphaAnimator.setDuration(
                 getResources().getInteger(android.R.integer.config_mediumAnimTime));
         alphaAnimator.addListener(listener);
 
         final AnimatorSet animatorSet = new AnimatorSet();
-        animatorSet.play(alphaAnimator);
+
+        //Play Reveal Animation if Lollipop or higher, and only alpha animation for others
+        if (revealAnimator != null) {
+            animatorSet.play(revealAnimator).before(alphaAnimator);
+        } else animatorSet.play(alphaAnimator);
+
         animatorSet.setInterpolator(new AccelerateDecelerateInterpolator());
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
