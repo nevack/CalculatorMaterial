@@ -301,27 +301,32 @@ public class Calculator extends Activity
     }
 
     private void reveal(View sourceView, int colorRes, AnimatorListener listener) {
-        final ViewGroupOverlay groupOverlay =
-                (ViewGroupOverlay) getWindow().getDecorView().getOverlay();
+        ViewGroupOverlay groupOverlay = null;
+        View revealView = new View(this);
+        Animator revealAnimator = null;
+
 
         final Rect displayRect = new Rect();
         mDisplayView.getGlobalVisibleRect(displayRect);
 
         // Make reveal cover the display and status bar.
-        final View revealView = new View(this);
         revealView.setBottom(displayRect.bottom);
         revealView.setLeft(displayRect.left);
         revealView.setRight(displayRect.right);
         revealView.setBackgroundColor(ContextCompat.getColor(this, colorRes));
-        groupOverlay.add(revealView);
 
-        final int[] clearLocation = new int[2];
-        sourceView.getLocationInWindow(clearLocation);
-        clearLocation[0] += sourceView.getWidth() / 2;
-        clearLocation[1] += sourceView.getHeight() / 2;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            groupOverlay = (ViewGroupOverlay) getWindow().getDecorView().getOverlay();
 
-        Animator revealAnimator = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            groupOverlay.add(revealView);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final int[] clearLocation = new int[2];
+            sourceView.getLocationInWindow(clearLocation);
+            clearLocation[0] += sourceView.getWidth() / 2;
+            clearLocation[1] += sourceView.getHeight() / 2;
+
             final int revealCenterX = clearLocation[0] - revealView.getLeft();
             final int revealCenterY = clearLocation[1] - revealView.getTop();
 
@@ -336,6 +341,7 @@ public class Calculator extends Activity
             revealAnimator.setDuration(
                     getResources().getInteger(android.R.integer.config_longAnimTime));
         }
+
         final Animator alphaAnimator = ObjectAnimator.ofFloat(revealView, View.ALPHA, 0.0f);
         alphaAnimator.setDuration(
                 getResources().getInteger(android.R.integer.config_mediumAnimTime));
@@ -349,10 +355,18 @@ public class Calculator extends Activity
         } else animatorSet.play(alphaAnimator);
 
         animatorSet.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        final ViewGroupOverlay finalGroupOverlay = groupOverlay;
+        final View finalRevealView = revealView;
+
         animatorSet.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animator) {
-                groupOverlay.remove(revealView);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                    if (finalGroupOverlay != null) {
+                        finalGroupOverlay.remove(finalRevealView);
+                    }
+                }
                 mCurrentAnimator = null;
             }
         });
